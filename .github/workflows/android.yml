@@ -1,7 +1,8 @@
 name: Build Android APK
 
 # Собирает APK из Kivy-версии (main.py) через Buildozer в облаке GitHub.
-# Запуск: автоматически при push в main, либо вручную (Actions -> Run workflow).
+# Запуск: при push в main (если менялись main.py/buildozer.spec/workflow),
+# либо вручную: вкладка Actions -> Build Android APK -> Run workflow.
 on:
   push:
     branches: [ main ]
@@ -13,21 +14,46 @@ on:
 
 jobs:
   build-android:
-    runs-on: ubuntu-latest
+    # 22.04: на нём есть libtinfo5, нужный тулчейну Android NDK.
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Build APK with Buildozer
-        uses: ArtemSBulgakov/buildozer-action@v1
-        id: buildozer
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          command: buildozer android debug
-          buildozer_version: stable
+          python-version: '3.11'
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            git zip unzip openjdk-17-jdk autoconf libtool pkg-config \
+            zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 \
+            cmake libffi-dev libssl-dev build-essential
+
+      - name: Install Buildozer
+        run: |
+          python -m pip install --upgrade pip
+          pip install "cython==0.29.36" buildozer
+
+      - name: Cache Buildozer directories
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.buildozer
+            .buildozer
+          key: buildozer-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
+          restore-keys: |
+            buildozer-${{ runner.os }}-
+
+      - name: Build debug APK
+        run: buildozer android debug
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: breathwimhof-debug-apk
-          path: ${{ steps.buildozer.outputs.filename }}
+          path: bin/*.apk
           if-no-files-found: error
