@@ -1,0 +1,33 @@
+name: Build Android APK
+
+# Собирает APK из Kivy-версии (main.py) через Buildozer в облаке GitHub.
+# Запуск: автоматически при push в main, либо вручную (Actions -> Run workflow).
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'main.py'
+      - 'buildozer.spec'
+      - '.github/workflows/android.yml'
+  workflow_dispatch:
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build APK with Buildozer
+        uses: ArtemSBulgakov/buildozer-action@v1
+        id: buildozer
+        with:
+          command: buildozer android debug
+          buildozer_version: stable
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: breathwimhof-debug-apk
+          path: ${{ steps.buildozer.outputs.filename }}
+          if-no-files-found: error
