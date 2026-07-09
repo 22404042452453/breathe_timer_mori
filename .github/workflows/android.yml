@@ -49,7 +49,18 @@ jobs:
             buildozer-${{ runner.os }}-
 
       - name: Build debug APK
-        run: buildozer android debug
+        run: |
+          # Первый прогон скачивает Android SDK/NDK. Он может упасть на приёмке
+          # лицензии для свежих build-tools (buildozer тянет preview 37.0.0),
+          # поэтому глушим ошибку, затем принимаем ВСЕ лицензии SDK (включая
+          # preview) его же sdkmanager и собираем начисто. SDK/NDK уже на диске,
+          # так что второй прогон переиспользует их и не качает заново.
+          buildozer android debug || true
+          SDKMANAGER=$(find ~/.buildozer/android/platform/android-sdk -name sdkmanager -type f | head -n1)
+          if [ -n "$SDKMANAGER" ]; then
+            yes | "$SDKMANAGER" --licenses || true
+          fi
+          buildozer android debug
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4

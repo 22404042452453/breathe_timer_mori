@@ -27,6 +27,11 @@ fullscreen = 0
 # (удвоит время сборки).
 android.archs = arm64-v8a
 
+# Целевой API. Лицензии SDK (в т.ч. свежих build-tools) принимаются в CI
+# отдельным шагом workflow через sdkmanager --licenses — без этого buildozer
+# тянет build-tools 37.0.0 из preview-канала и падает с "Aidl not found".
+android.api = 34
+
 android.allow_backup = True
 
 [buildozer]
